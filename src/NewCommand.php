@@ -40,14 +40,15 @@ class NewCommand extends Command {
 		if (!class_exists('ZipArchive')) {
 			throw new RuntimeException('The Zip PHP extension is not installed. Please install it and try again.');
 		}
+		$name = $input->getArgument('name');
 
-		$directory = ($input->getArgument('name')) ? getcwd() . '/' . $input->getArgument('name') : getcwd();
+		$directory = $name ? getcwd() . '/' . $name : getcwd();
 
 		if (!$input->getOption('force')) {
 			$this->verifyApplicationDoesntExist($directory);
 		}
 
-		$output->writeln('<info>create gmf application...</info>');
+		$output->writeln('<info>create gmf application...[' . $name . ']</info>');
 
 		$version = $this->getVersion($input);
 		$zipFile = $this->makeFilename();
@@ -146,6 +147,7 @@ class NewCommand extends Command {
 		$archive->close();
 
 		$this->copy_dir($tempDir . DIRECTORY_SEPARATOR . 'gmf-laravel-master', $directory, true);
+		@chmod($tempDir, 0777);
 		@rmdir($tempDir);
 		return $this;
 	}
