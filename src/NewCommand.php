@@ -47,14 +47,14 @@ class NewCommand extends Command {
 			$this->verifyApplicationDoesntExist($directory);
 		}
 
-		$output->writeln('<info>Crafting application...</info>');
+		$output->writeln('<info>create gmf application...</info>');
 
 		$version = $this->getVersion($input);
-
-		$this->download($zipFile = $this->makeFilename(), $version)
-			->extract($zipFile, $directory)
-			->prepareWritableDirectories($directory, $output)
-			->cleanUp($zipFile);
+		$zipFile = $this->makeFilename();
+		$this->download($zipFile, $version, $output);
+		$this->extract($zipFile, $directory, $output);
+		$this->prepareWritableDirectories($directory, $output);
+		$this->cleanUp($zipFile);
 
 		$composer = $this->findComposer();
 
@@ -63,6 +63,7 @@ class NewCommand extends Command {
 			$composer . ' run-script post-root-package-install',
 			$composer . ' run-script post-create-project-cmd',
 			$composer . ' run-script post-autoload-dump',
+			$composer . ' gmf-install',
 		];
 
 		if ($input->getOption('no-ansi')) {
@@ -112,14 +113,13 @@ class NewCommand extends Command {
 	 * @param  string  $version
 	 * @return $this
 	 */
-	protected function download($zipFile, $version = 'master') {
+	protected function download($zipFile, $version = 'master', OutputInterface $output) {
 		if ($version) {
 			$filename = $version . '.zip';
 		} else {
 			$filename = 'master.zip';
 		}
 		//http://cabinet.laravel.com/' . $filename
-		//https://github.com/ggoop/gmf-laravel/archive/master.zip
 		$response = (new Client)->get('https://github.com/ggoop/gmf-laravel/archive/' . $filename);
 
 		file_put_contents($zipFile, $response->getBody());
@@ -134,16 +134,41 @@ class NewCommand extends Command {
 	 * @param  string  $directory
 	 * @return $this
 	 */
-	protected function extract($zipFile, $directory) {
+	protected function extract($zipFile, $directory, OutputInterface $output) {
 		$archive = new ZipArchive;
 
 		$archive->open($zipFile);
 
-		$archive->extractTo($directory);
+		$tempDir = getcwd() . DIRECTORY_SEPARATOR . 'gmf-laravel_' . md5(time() . uniqid());
+
+		$archive->extractTo($tempDir);
 
 		$archive->close();
 
+		$this->copy_dir($tempDir . DIRECTORY_SEPARATOR . 'gmf-laravel-master', $directory, true);
+		@rmdir($tempDir);
 		return $this;
+	}
+	protected function copy_dir($src, $dst, $delete = false) {
+		$dir = @opendir($src);
+		@mkdir($dst);
+		while (false !== ($file = readdir($dir))) {
+			if (($file != '.') && ($file != '..')) {
+				$srcFile = $src . DIRECTORY_SEPARATOR . $file;
+				$newFile = $dst . DIRECTORY_SEPARATOR . $file;
+				if (is_dir($srcFile)) {
+					$this->copy_dir($srcFile, $newFile, $delete);
+					continue;
+				} else {
+					@copy($srcFile, $newFile);
+					if ($delete) {
+						@unlink($srcFile);
+					}
+				}
+			}
+		}
+		@closedir($dir);
+		@rmdir($src);
 	}
 
 	/**
