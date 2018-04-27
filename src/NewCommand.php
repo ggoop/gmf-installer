@@ -120,7 +120,7 @@ class NewCommand extends Command {
 		}
 		//http://cabinet.laravel.com/' . $filename
 		//https://github.com/ggoop/gmf-laravel/archive/master.zip
-		$response = (new Client)->get('http://cabinet.laravel.com/' . $filename);
+		$response = (new Client)->get('https://github.com/ggoop/gmf-laravel/archive/' . $filename);
 
 		file_put_contents($zipFile, $response->getBody());
 
