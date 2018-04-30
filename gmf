@@ -8,6 +8,6 @@ if (file_exists(__DIR__.'/../../autoload.php')) {
 }
 
 $app = new Symfony\Component\Console\Application('gmf Installer', '2.0.1');
-$app->add(new Gmf\Installer\Console\NewCommand);
-
+$app->add(new Gmf\Installer\Console\CreateProjectCommand);
+$app->add(new Gmf\Installer\Console\CreatePackageCommand);
 $app->run();
