@@ -59,7 +59,7 @@ class CreateProjectCommand extends Command {
 		$this->cleanUp($zipFile);
 
 		$composer = Common::findComposer();
-		if (!$input->hasOption('no-install')) {
+		if (!$input->getOption('no-install')) {
 			$commands = [
 				$composer . ' install --no-scripts',
 				$composer . ' run-script post-root-package-install',

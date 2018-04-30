@@ -22,7 +22,7 @@ class CreatePackageCommand extends Command {
 			->setName('create-package')
 			->setDescription('Create a new package')
 			->addArgument('name', InputArgument::OPTIONAL)
-			->addOption('dev', null, InputOption::VALUE_NONE, 'Installs the latest "development" release')
+			->addOption('user', null, InputOption::VALUE_OPTIONAL, 'the user who created!')
 			->addOption('force', null, InputOption::VALUE_NONE, 'Forces install even if the directory already exists');
 	}
 
@@ -38,6 +38,9 @@ class CreatePackageCommand extends Command {
 			throw new RuntimeException('The Zip PHP extension is not installed. Please install it and try again.');
 		}
 		$name = $input->getArgument('name');
+		if (empty($name)) {
+			throw new \Exception("name is null;");
+		}
 
 		$directory = $name ? getcwd() . '/' . $name : getcwd();
 
@@ -51,6 +54,7 @@ class CreatePackageCommand extends Command {
 		$zipFile = $this->makeFilename();
 		$this->download($zipFile, $version, $output);
 		$this->extract($zipFile, $directory, $output);
+		$this->replaceFileContent($directory, $output);
 		$this->cleanUp($zipFile);
 
 		$output->writeln('<comment>package ready! Build something amazing.</comment>');
@@ -134,6 +138,33 @@ class CreatePackageCommand extends Command {
 		@unlink($zipFile);
 
 		return $this;
+	}
+	protected function replaceFileContent($directory, OutputInterface $output) {
+		$name = basename($directory);
+
+		$DummyRootNamespaceString = Common::toNamespace($name, '\\\\');
+		$DummyPackageName = Common::snake(Common::studly($name), '-');
+		$DummyRootNamespace = Common::toNamespace($name, '\\');
+		$DummyUserName = $input->getOption('force');
+
+		$file = $directory . DIRECTORY_SEPARATOR . 'composer.json';
+		$content = @file_get_contents($file);
+		if ($content) {
+			$content = str_replace('DummyRootNamespaceString', $DummyRootNamespaceString, $content);
+			$content = str_replace('DummyPackageName', $DummyPackageName, $content);
+			if ($DummyUserName) {
+				$content = str_replace('DummyUserName', $DummyUserName, $content);
+			}
+			@file_put_contents($file, $content);
+		}
+		$list = Common::listFiles($directory, "*.php");
+		foreach ($list as $file) {
+			$content = @file_get_contents($file);
+			$content = str_replace('DummyRootNamespaceString', $DummyRootNamespaceString, $content);
+			$content = str_replace('DummyPackageName', $DummyPackageName, $content);
+			$content = str_replace('DummyRootNamespace', $DummyRootNamespace, $content);
+			@file_put_contents($file, $content);
+		}
 	}
 
 	/**
