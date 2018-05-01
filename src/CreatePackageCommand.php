@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Process\Process;
 use ZipArchive;
 
 class CreatePackageCommand extends Command {
@@ -58,6 +59,26 @@ class CreatePackageCommand extends Command {
 		$this->replaceFileContent($directory, $input, $output);
 		$this->configProject($directory, $input, $output);
 		$this->cleanUp($zipFile);
+
+		$composer = Common::findComposer();
+		$commands = [
+			$composer . ' run-script post-autoload-dump',
+		];
+		if ($input->getOption('no-ansi')) {
+			$commands = array_map(function ($value) {
+				return $value . ' --no-ansi';
+			}, $commands);
+		}
+
+		$process = new Process(implode(' && ', $commands), $directory, null, null, null);
+
+		if ('\\' !== DIRECTORY_SEPARATOR && file_exists('/dev/tty') && is_readable('/dev/tty')) {
+			$process->setTty(true);
+		}
+
+		$process->run(function ($type, $line) use ($output) {
+			$output->write($line);
+		});
 
 		$output->writeln('<comment>package ready! Build something amazing.</comment>');
 	}

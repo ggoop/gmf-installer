@@ -156,7 +156,21 @@ class CreateProjectCommand extends Command {
 		@rmdir($tempDir);
 		return $this;
 	}
+	protected function replaceFileContent($directory, InputInterface $input, OutputInterface $output) {
+		$name = basename($directory);
 
+		$DummyProjectName = Common::snake(Common::studly($name), '-');
+		$file = $directory . DIRECTORY_SEPARATOR . '.env.example';
+		$content = @file_get_contents($file);
+		if ($content) {
+			$content = str_replace('DummyProjectName', $DummyProjectName, $content);
+			$content = str_replace('DummyProjectUserID', md5(time() . uniqid()), $content);
+			$content = str_replace('DummyProjectEntID', md5(time() . uniqid()), $content);
+			$content = str_replace('DummyProjectClientID', md5(time() . uniqid()), $content);
+			$content = str_replace('DummyProjectClientSECRET', md5(time() . uniqid()), $content);
+			@file_put_contents($file, $content);
+		}
+	}
 	/**
 	 * Clean-up the Zip file.
 	 *
