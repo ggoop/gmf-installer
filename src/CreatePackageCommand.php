@@ -60,26 +60,29 @@ class CreatePackageCommand extends Command {
 		$this->configProject($directory, $input, $output);
 		$this->cleanUp($zipFile);
 
-		$composer = Common::findComposer();
-		$commands = [
-			$composer . ' run-script post-autoload-dump',
-		];
-		if ($input->getOption('no-ansi')) {
-			$commands = array_map(function ($value) {
-				return $value . ' --no-ansi';
-			}, $commands);
+		if ($project = $input->getOption('project')) {
+			$project = Common::path_combine(getcwd(), $project);
+
+			$composer = Common::findComposer();
+			$commands = [
+				$composer . ' dump-autoload',
+			];
+			if ($input->getOption('no-ansi')) {
+				$commands = array_map(function ($value) {
+					return $value . ' --no-ansi';
+				}, $commands);
+			}
+
+			$process = new Process(implode(' && ', $commands), $project, null, null, null);
+
+			if ('\\' !== DIRECTORY_SEPARATOR && file_exists('/dev/tty') && is_readable('/dev/tty')) {
+				$process->setTty(true);
+			}
+
+			$process->run(function ($type, $line) use ($output) {
+				$output->write($line);
+			});
 		}
-
-		$process = new Process(implode(' && ', $commands), $directory, null, null, null);
-
-		if ('\\' !== DIRECTORY_SEPARATOR && file_exists('/dev/tty') && is_readable('/dev/tty')) {
-			$process->setTty(true);
-		}
-
-		$process->run(function ($type, $line) use ($output) {
-			$output->write($line);
-		});
-
 		$output->writeln('<comment>package ready! Build something amazing.</comment>');
 	}
 
