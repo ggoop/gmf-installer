@@ -191,7 +191,7 @@ class CreatePackageCommand extends Command {
 			$file = $path . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'app.php';
 			$content = @file_get_contents($file);
 			if ($content) {
-				$content = str_replace('/*DummyProviderPlaced*/', '/*DummyProviderPlaced*/' . PHP_EOL . '\t\t' . $DummyRootNamespace . '\ServiceProvider::class,', $content);
+				$content = str_replace('/*DummyProviderPlaced*/', '/*DummyProviderPlaced*/' . PHP_EOL . $DummyRootNamespace . '\ServiceProvider::class,', $content);
 				@file_put_contents($file, $content);
 			}
 		}
