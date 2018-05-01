@@ -56,6 +56,7 @@ class CreateProjectCommand extends Command {
 		$this->download($zipFile, $version, $output);
 		$this->extract($zipFile, $directory, $output);
 		$this->prepareWritableDirectories($directory, $output);
+		$this->replaceFileContent($directory, $input, $output);
 		$this->cleanUp($zipFile);
 
 		$composer = Common::findComposer();
