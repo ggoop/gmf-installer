@@ -22,6 +22,7 @@ class CreatePackageCommand extends Command {
 			->setName('create-package')
 			->setDescription('Create a new package')
 			->addArgument('name', InputArgument::OPTIONAL)
+			->addOption('project', null, InputOption::VALUE_OPTIONAL, 'the project where should be update configs!')
 			->addOption('user', null, InputOption::VALUE_OPTIONAL, 'the user who created!')
 			->addOption('force', null, InputOption::VALUE_NONE, 'Forces install even if the directory already exists');
 	}
@@ -42,7 +43,7 @@ class CreatePackageCommand extends Command {
 			throw new \Exception("name is null;");
 		}
 
-		$directory = $name ? getcwd() . '/' . $name : getcwd();
+		$directory = $name ? getcwd() . DIRECTORY_SEPARATOR . $name : getcwd();
 
 		if (!$input->getOption('force')) {
 			$this->verifyApplicationDoesntExist($directory);
@@ -54,7 +55,8 @@ class CreatePackageCommand extends Command {
 		$zipFile = $this->makeFilename();
 		$this->download($zipFile, $version, $output);
 		$this->extract($zipFile, $directory, $output);
-		$this->replaceFileContent($directory, $output);
+		$this->replaceFileContent($directory, $input, $output);
+		$this->configProject($directory, $input, $output);
 		$this->cleanUp($zipFile);
 
 		$output->writeln('<comment>package ready! Build something amazing.</comment>');
@@ -139,16 +141,16 @@ class CreatePackageCommand extends Command {
 
 		return $this;
 	}
-	protected function replaceFileContent($directory, OutputInterface $output) {
+	protected function replaceFileContent($directory, InputInterface $input, OutputInterface $output) {
 		$name = basename($directory);
 
 		$DummyRootNamespaceString = Common::toNamespace($name, '\\\\');
 		$DummyPackageName = Common::snake(Common::studly($name), '-');
 		$DummyRootNamespace = Common::toNamespace($name, '\\');
-		$DummyUserName = $input->getOption('force');
 
 		$file = $directory . DIRECTORY_SEPARATOR . 'composer.json';
 		$content = @file_get_contents($file);
+		$DummyUserName = $this->getUser($input);
 		if ($content) {
 			$content = str_replace('DummyRootNamespaceString', $DummyRootNamespaceString, $content);
 			$content = str_replace('DummyPackageName', $DummyPackageName, $content);
@@ -166,6 +168,34 @@ class CreatePackageCommand extends Command {
 			@file_put_contents($file, $content);
 		}
 	}
+	protected function configProject($directory, InputInterface $input, OutputInterface $output) {
+		$name = basename($directory);
+		$DummyRootNamespace = Common::toNamespace($name, '\\');
+		if ($project = $input->getOption('project')) {
+			$path = Common::path_combine(getcwd(), $project);
+			if (!is_dir($path)
+				|| !is_file($path . DIRECTORY_SEPARATOR . 'composer.json')
+				|| !is_file($path . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'app.php')) {
+				throw new RuntimeException(sprintf('project [%s]  is not exists! or is not gmf project!', $project));
+			}
+			$file = $path . DIRECTORY_SEPARATOR . 'composer.json';
+			$content = @file_get_contents($file);
+			if ($content) {
+				$content = json_decode($content);
+				$content->autoload->{'psr-4'}->{$DummyRootNamespace . '\\'} = str_replace(DIRECTORY_SEPARATOR, '/', Common::relativePath($directory . DIRECTORY_SEPARATOR, $path) . 'src/');
+				$content = json_encode($content);
+				$content = str_replace('\/', '/', $content);
+				@file_put_contents($file, $content);
+			}
+
+			$file = $path . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'app.php';
+			$content = @file_get_contents($file);
+			if ($content) {
+				$content = str_replace('/*DummyProviderPlaced*/', '/*DummyProviderPlaced*/' . PHP_EOL . '\t\t' . $DummyRootNamespace . '\ServiceProvider::class,', $content);
+				@file_put_contents($file, $content);
+			}
+		}
+	}
 
 	/**
 	 * Get the version that should be downloaded.
@@ -174,9 +204,9 @@ class CreatePackageCommand extends Command {
 	 * @return string
 	 */
 	protected function getVersion(InputInterface $input) {
-		if ($input->getOption('dev')) {
-			return 'develop';
-		}
-		return 'master';
+		return $input->getOption('version');
+	}
+	protected function getUser(InputInterface $input) {
+		return $input->getOption('user');
 	}
 }

@@ -2,11 +2,34 @@
 
 namespace Gmf\Installer\Console;
 class Common {
-	/**
-	 * Get the composer command for the environment.
-	 *
-	 * @return string
-	 */
+	public static function relativePath($aPath, $bPath) {
+		$aArr = explode(DIRECTORY_SEPARATOR, $aPath);
+		$bArr = explode(DIRECTORY_SEPARATOR, $bPath);
+		$aDiffToB = array_diff_assoc($aArr, $bArr);
+		$count = count($aDiffToB);
+
+		$path = '';
+		for ($i = 0; $i < $count - 1; $i++) {
+			$path .= '..' . DIRECTORY_SEPARATOR;
+		}
+		$path .= implode(DIRECTORY_SEPARATOR, $aDiffToB);
+
+		return $path;
+	}
+	public static function splitPathName($name) {
+		$name = preg_split("/[\/|\\\]/", $name);
+		return $name;
+	}
+	public static function path_combine() {
+		$lists = func_get_args();
+		$ps = [];
+		foreach ($lists as $key => $value) {
+			if ($value) {
+				$ps[] = $value;
+			}
+		}
+		return implode(DIRECTORY_SEPARATOR, $ps);
+	}
 	public static function findComposer() {
 		if (file_exists(getcwd() . '/composer.phar')) {
 			return '"' . PHP_BINARY . '" composer.phar';
