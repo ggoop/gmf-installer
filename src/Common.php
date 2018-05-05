@@ -37,7 +37,7 @@ class Common {
 		return 'composer';
 	}
 	public static function listDirs($dir) {
-		static $alldirs = array();
+		$alldirs = array();
 		$dirs = glob($dir . '/*', GLOB_ONLYDIR);
 		if (count($dirs) > 0) {
 			foreach ($dirs as $d) {
@@ -51,6 +51,7 @@ class Common {
 	}
 	public static function listFiles($dir, $pattern = '*') {
 		$dirs = static::listDirs($dir);
+		$dirs[] = $dir;
 		$files = [];
 		foreach ($dirs as $k => $v) {
 			$files = array_merge($files, glob($v . DIRECTORY_SEPARATOR . $pattern));
